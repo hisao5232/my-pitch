@@ -8,7 +8,9 @@ type Bindings = {
 const app = new Hono<{ Bindings: Bindings }>()
 
 // フロントエンドからのアクセスを許可
-app.use('/api/*', cors())
+app.use('/api/*', cors({
+  origin: '*', // テスト時はこれでもOKですが、本番は 'https://go-pro-world.net' などに絞るのが安全です
+}))
 
 // GET スケジュール一覧取得
 app.get('/api/schedules', async (c) => {
