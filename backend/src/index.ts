@@ -10,31 +10,19 @@ const app = new Hono<{ Bindings: Bindings }>()
 // フロントエンドからのアクセスを許可
 app.use('/api/*', cors())
 
+// GET スケジュール一覧取得
 app.get('/api/schedules', async (c) => {
-  try {
-    const { results } = await c.env.DB.prepare(
-      'SELECT * FROM schedules ORDER BY date ASC'
-    ).all()
-    return c.json(results)
-  } catch (e) {
-    return c.json({ error: "Failed to fetch schedules" }, 500)
-  }
-})
+  const { results } = await c.env.DB.prepare('SELECT * FROM schedules').all();
+  return c.json(results);
+});
 
-// POSTリクエストで新しい予定を追加
+// POST 新しい予定を追加
 app.post('/api/schedules', async (c) => {
-  const body = await c.req.json();
-  const { title, date, category } = body;
-
-  try {
-    await c.env.DB.prepare(
-      'INSERT INTO schedules (title, date, category) VALUES (?, ?, ?)'
-    ).bind(title, date, category).run();
-    
-    return c.json({ success: true }, 201);
-  } catch (e) {
-    return c.json({ error: "Failed to add schedule" }, 500);
-  }
+  const { title, description, date } = await c.req.json();
+  await c.env.DB.prepare(
+    'INSERT INTO schedules (title, description, date) VALUES (?, ?, ?)'
+  ).bind(title, description, date).run();
+  return c.json({ success: true });
 });
 
 export default app

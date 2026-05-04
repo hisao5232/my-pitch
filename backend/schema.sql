@@ -1,10 +1,12 @@
-CREATE TABLE IF NOT EXISTS schedules (
+DROP TABLE IF EXISTS schedules;
+
+CREATE TABLE schedules (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  title TEXT NOT NULL,
-  date TEXT NOT NULL,      -- '2026-05-10' 形式
-  category TEXT DEFAULT 'general' -- 'soccer', 'work', etc.
+  title TEXT NOT NULL,      -- タイトル
+  description TEXT,         -- 詳細
+  date TEXT NOT NULL        -- 日付 (YYYY-MM-DD)
 );
 
 -- テストデータ
-INSERT INTO schedules (title, date, category) VALUES ('週末サッカー大会', '2026-05-10', 'soccer');
-INSERT INTO schedules (title, date, category) VALUES ('MyPitch 開発タイム', '2026-05-04', 'work');
+INSERT INTO schedules (title, description, date) 
+VALUES ('サッカー試合', '〇〇公園 14:00キックオフ', '2026-05-10');
