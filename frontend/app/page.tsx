@@ -53,7 +53,7 @@ export default function Home() {
   const addSchedule = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newTitle || !selectedDay) return
-    const res = await fetch('${API_URL}/api/schedules', {
+    const res = await fetch(`${API_URL}/api/schedules`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
