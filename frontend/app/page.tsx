@@ -29,9 +29,7 @@ export default function Home() {
   const [newDescription, setNewDescription] = useState('')
   const [weight, setWeight] = useState('')
   const [bodyFat, setBodyFat] = useState('')
-  // 編集中のスケジュールを保持（null の時はモーダルを閉じる）
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
-  // 編集用の一時的な入力値
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
 
@@ -133,6 +131,8 @@ export default function Home() {
     if (res.ok) {
       setEditingSchedule(null);
       fetchSchedules();
+    } else {
+    alert("更新に失敗しました");
     }
   };
 
@@ -145,6 +145,8 @@ export default function Home() {
     if (res.ok) {
       setEditingSchedule(null);
       fetchSchedules();
+    }else {
+    alert("削除に失敗しました");
     }
   };
 
