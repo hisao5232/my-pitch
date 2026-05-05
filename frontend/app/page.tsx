@@ -20,6 +20,8 @@ type Schedule = {
   id: number; title: string; description: string; date: string;
 }
 
+type LinkItem = { id: number; title: string; url: string; };
+
 export default function Home() {
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [conditions, setConditions] = useState<any[]>([])
@@ -32,6 +34,9 @@ export default function Home() {
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [links, setLinks] = useState<LinkItem[]>([]);
+  const [newLinkTitle, setNewLinkTitle] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
 
   // 環境変数の取得を1箇所にまとめるとスッキリします
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
@@ -58,10 +63,40 @@ export default function Home() {
       .catch(err => console.error("Fetch conditions error:", err));
   }
 
+  // --- リンク取得 ---
+  const fetchLinks = () => {
+    fetch(`${API_URL}/api/links`)
+      .then(res => res.json())
+      .then(setLinks);
+  };
+
+  // --- リンク追加 ---
+  const addLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLinkTitle || !newLinkUrl) return;
+    const res = await fetch(`${API_URL}/api/links`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: newLinkTitle, url: newLinkUrl })
+    });
+    if (res.ok) {
+      setNewLinkTitle('');
+      setNewLinkUrl('');
+      fetchLinks();
+    }
+  };
+  
+  // --- リンク削除 ---
+  const deleteLink = async (id: number) => {
+    await fetch(`${API_URL}/api/links/${id}`, { method: 'DELETE' });
+    fetchLinks();
+  };
+
   // 初回読み込み
   useEffect(() => { 
     fetchSchedules();
     fetchConditions(); 
+    fetchLinks();
   }, [])
 
   // --- コンディション登録 ---
@@ -234,7 +269,6 @@ export default function Home() {
                 <Activity size={28} /> コンディションログ
               </h2>
               
-              {/* 入力フォーム */}
               <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 shadow-xl">
                 <form className="flex flex-wrap items-end gap-6">
                   <div className="flex-1 min-w-40">
@@ -263,7 +297,6 @@ export default function Home() {
                 </form>
               </div>
 
-              {/* グラフ表示 */}
               <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 shadow-xl min-h-80">
                 <h3 className="text-sm font-bold text-slate-400 mb-6">最近の推移（体重・体脂肪率）</h3>
                 <div className="w-full h-64">
@@ -283,8 +316,9 @@ export default function Home() {
             </div>
           </div>
 
-          {/* --- 右サイドバー：入力 & 詳細 --- */}
+          {/* --- 右サイドバー：スケジュール入力 & 詳細 & お気に入り --- */}
           <div className="space-y-6">
+            {/* 予定を登録 */}
             <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 shadow-lg">
               <h2 className="text-xl font-bold mb-4 text-blue-400">予定を登録</h2>
               <form onSubmit={addSchedule} className="space-y-4">
@@ -298,20 +332,18 @@ export default function Home() {
               </form>
             </div>
 
+            {/* 本日の詳細 */}
             <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 min-h-75 shadow-lg">
               <h2 className="text-xl font-bold mb-4 text-blue-400">本日の詳細</h2>
               <div className="space-y-3">
                 {daySchedules.length > 0 ? (
-                  daySchedules.map(item => (
-                    // ここに 「group」と「relative」を追加します
+                  daySchedules.map((item: Schedule) => (
                     <div key={item.id} className="p-4 rounded bg-[#334155] border-l-4 border-blue-500 shadow-md group relative">
                       <div className="font-black text-white text-lg">{item.title}</div>
                       <div className="text-sm text-slate-300 whitespace-pre-wrap">{item.description}</div>
-                      
-                      {/* ボタン部分：absoluteで右上に固定 */}
                       <button 
                         onClick={() => openEditModal(item)}
-                        className="absolute top-2 right-2 p-1 px-2 bg-blue-600 hover:bg-blue-500 rounded text-xs text-white font-bold"
+                        className="absolute top-2 right-2 p-1 px-2 bg-slate-600 hover:bg-blue-500 rounded text-xs text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         編集
                       </button>
@@ -320,11 +352,37 @@ export default function Home() {
                 ) : <p className="text-slate-500 italic text-center py-10">予定なし</p>}
               </div>
             </div>
-          </div>
 
+            {/* お気に入りリンク */}
+            <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 shadow-lg">
+              <h2 className="text-xl font-bold mb-4 text-emerald-400">お気に入りリンク</h2>
+              <form onSubmit={addLink} className="space-y-3 mb-6">
+                <input value={newLinkTitle} onChange={(e) => setNewLinkTitle(e.target.value)}
+                  className="w-full p-2 rounded bg-slate-800 text-sm border border-slate-700 outline-none focus:border-emerald-500 text-white" placeholder="サイト名" />
+                <input value={newLinkUrl} onChange={(e) => setNewLinkUrl(e.target.value)}
+                  className="w-full p-2 rounded bg-slate-800 text-sm border border-slate-700 outline-none focus:border-emerald-500 text-white" placeholder="https://..." />
+                <button className="w-full bg-emerald-600 hover:bg-emerald-500 py-2 rounded font-bold text-xs transition text-white">
+                  リンクを追加
+                </button>
+              </form>
+              <div className="grid grid-cols-1 gap-2">
+                {links.map(link => (
+                  <div key={link.id} className="flex items-center justify-between group bg-slate-800/50 p-2 px-3 rounded hover:bg-slate-700 transition">
+                    <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-blue-400 hover:underline truncate mr-2">
+                      {link.title}
+                    </a>
+                    <button onClick={() => deleteLink(link.id)} className="text-[10px] text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                      削除
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      {/* --- ここからモーダルのコード --- */}
+
+      {/* --- モーダル（最後に配置） --- */}
       {editingSchedule && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-100 p-4">
           <div className="bg-[#1e293b] w-full max-w-md p-6 rounded-2xl border border-slate-700 shadow-2xl">
@@ -347,22 +405,13 @@ export default function Home() {
                 />
               </div>
               <div className="flex gap-2 pt-2 text-white">
-                <button 
-                  onClick={updateSchedule} 
-                  className="flex-1 bg-blue-600 hover:bg-blue-500 py-3 rounded-lg font-bold transition shadow-lg active:scale-95"
-                >
+                <button onClick={updateSchedule} className="flex-1 bg-blue-600 hover:bg-blue-500 py-3 rounded-lg font-bold transition shadow-lg active:scale-95">
                   更新する
                 </button>
-                <button 
-                  onClick={() => deleteSchedule(editingSchedule.id)} 
-                  className="bg-red-600 hover:bg-red-500 px-6 rounded-lg font-bold transition shadow-lg active:scale-95"
-                >
+                <button onClick={() => deleteSchedule(editingSchedule.id)} className="bg-red-600 hover:bg-red-500 px-6 rounded-lg font-bold transition shadow-lg active:scale-95">
                   削除
                 </button>
-                <button 
-                  onClick={() => setEditingSchedule(null)} 
-                  className="bg-slate-600 hover:bg-slate-500 px-6 rounded-lg font-bold transition"
-                >
+                <button onClick={() => setEditingSchedule(null)} className="bg-slate-600 hover:bg-slate-500 px-6 rounded-lg font-bold transition">
                   閉じる
                 </button>
               </div>

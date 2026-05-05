@@ -76,4 +76,26 @@ app.post('/api/conditions', async (c) => {
   }
 });
 
+// --- リンク一覧の取得 ---
+app.get('/api/links', async (c) => {
+  const { results } = await c.env.DB.prepare("SELECT * FROM links ORDER BY id DESC").all();
+  return c.json(results);
+});
+
+// --- リンクの追加 ---
+app.post('/api/links', async (c) => {
+  const { title, url } = await c.req.json();
+  await c.env.DB.prepare("INSERT INTO links (title, url) VALUES (?, ?)")
+    .bind(title, url)
+    .run();
+  return c.json({ success: true });
+});
+
+// --- リンクの削除 ---
+app.delete('/api/links/:id', async (c) => {
+  const id = c.req.param('id');
+  await c.env.DB.prepare("DELETE FROM links WHERE id = ?").bind(id).run();
+  return c.json({ success: true });
+});
+
 export default app
