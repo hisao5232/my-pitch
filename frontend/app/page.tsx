@@ -20,27 +20,22 @@ type Schedule = {
   id: number; title: string; description: string; date: string;
 }
 
-// ダミーデータ
-const dummyLogs = [
-  { date: '04/28', weight: 65.5, fat: 12.5 },
-  { date: '04/30', weight: 65.2, fat: 12.3 },
-  { date: '05/02', weight: 65.0, fat: 12.1 },
-  { date: '05/05', weight: 64.8, fat: 12.0 },
-]
-
 export default function Home() {
   const [schedules, setSchedules] = useState<Schedule[]>([])
+  // ステートは必ずこの中（Home関数の内側）に移動してください
+  const [conditions, setConditions] = useState<any[]>([])
+  
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState<Date>(new Date())
   const [newTitle, setNewTitle] = useState('')
   const [newDescription, setNewDescription] = useState('')
-  
-  // 体調管理用ステート
   const [weight, setWeight] = useState('')
   const [bodyFat, setBodyFat] = useState('')
 
+  // 環境変数の取得を1箇所にまとめるとスッキリします
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
 
+  // --- スケジュール取得 ---
   const fetchSchedules = () => {
     fetch(`${API_URL}/api/schedules`)
       .then(res => res.json())
@@ -48,11 +43,54 @@ export default function Home() {
       .catch(err => console.error("Fetch error:", err))
   }
 
-  useEffect(() => { fetchSchedules() }, [])
+  // --- コンディション取得 ---
+  const fetchConditions = () => {
+    fetch(`${API_URL}/api/conditions`)
+      .then(res => res.json())
+      .then(data => {
+        const formattedData = data.map((item: any) => ({
+          ...item,
+          date: format(new Date(item.date), 'MM/dd')
+        }));
+        setConditions(formattedData);
+      })
+      .catch(err => console.error("Fetch conditions error:", err));
+  }
 
+  // 初回読み込み
+  useEffect(() => { 
+    fetchSchedules();
+    fetchConditions(); 
+  }, [])
+
+  // --- コンディション登録 ---
+  const addCondition = async () => {
+    if (!weight || !bodyFat) return;
+    
+    const res = await fetch(`${API_URL}/api/conditions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        weight: parseFloat(weight),
+        fat: parseFloat(bodyFat),
+        date: format(selectedDay, 'yyyy-MM-dd')
+      })
+    });
+
+    if (res.ok) {
+      setWeight('');
+      setBodyFat('');
+      alert(`${format(selectedDay, 'M月d日')}の記録を保存しました！`);
+      fetchConditions(); // 再読み込みしてグラフを更新
+    }
+  };
+
+  // --- スケジュール追加 ---
   const addSchedule = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newTitle || !selectedDay) return
+    e.preventDefault();
+    // newTitle が空、または selectedDay が無い場合は処理しない
+    if (!newTitle || !selectedDay) return;
+
     const res = await fetch(`${API_URL}/api/schedules`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -61,11 +99,14 @@ export default function Home() {
         description: newDescription,
         date: format(selectedDay, 'yyyy-MM-dd')
       })
-    })
+    });
+
     if (res.ok) {
-      setNewTitle(''); setNewDescription(''); fetchSchedules()
+      setNewTitle('');
+      setNewDescription('');
+      fetchSchedules(); // 👈 ここで fetchSchedules を呼ぶ（schedules ではない）
     }
-  }
+  };
 
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(monthStart)
@@ -170,8 +211,12 @@ export default function Home() {
                       placeholder="12.0"
                     />
                   </div>
-                  <button type="button" className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg font-bold shadow-lg transition active:scale-95">
-                    記録する
+                  <button 
+                    type="button" 
+                    onClick={addCondition} 
+                    className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg font-bold shadow-lg transition active:scale-95"
+                  >
+                    {format(selectedDay, 'M/d')} のコンディションを記録
                   </button>
                 </form>
               </div>
@@ -181,7 +226,7 @@ export default function Home() {
                 <h3 className="text-sm font-bold text-slate-400 mb-6">最近の推移（体重・体脂肪率）</h3>
                 <div className="w-full h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={dummyLogs}>
+                    <LineChart data={conditions}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                       <XAxis dataKey="date" stroke="#94a3b8" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
                       <YAxis yAxisId="left" domain={['dataMin - 1', 'dataMax + 1']} stroke="#60a5fa" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
