@@ -25,7 +25,32 @@ app.post('/api/schedules', async (c) => {
   return c.json({ success: true });
 });
 
-// --- 🔽 ここからコンディションログ用を追加 🔽 ---
+// --- スケジュールの更新 (PUT) ---
+app.put('/api/schedules/:id', async (c) => {
+  const id = c.req.param('id');
+  const { title, description, date } = await c.req.json();
+  
+  await c.env.DB.prepare(
+    "UPDATE schedules SET title = ?, description = ?, date = ? WHERE id = ?"
+  )
+  .bind(title, description, date, id)
+  .run();
+  
+  return c.json({ success: true });
+});
+
+// --- スケジュールの削除 (DELETE) ---
+app.delete('/api/schedules/:id', async (c) => {
+  const id = c.req.param('id');
+  
+  await c.env.DB.prepare(
+    "DELETE FROM schedules WHERE id = ?"
+  )
+  .bind(id)
+  .run();
+  
+  return c.json({ success: true });
+});
 
 // GET コンディションログ取得（直近30日分など）
 app.get('/api/conditions', async (c) => {
