@@ -16,7 +16,7 @@ import { ja } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Activity } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
-type Schedule = { id: number; title: string; description: string; date: string; };
+type Schedule = { id: number; title: string; description: string; date: string; category?: string; };
 type LinkItem = { id: number; title: string; url: string; };
 type VideoItem = { id: number; title: string; url: string; category: string; };
 
@@ -38,6 +38,7 @@ export default function Home() {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [newVideoTitle, setNewVideoTitle] = useState('');
   const [newVideoUrl, setNewVideoUrl] = useState('');
+  const [newCategory, setNewCategory] = useState('通知なし');
   // 環境変数の取得
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
 
@@ -158,7 +159,6 @@ const getEmbedUrl = (url: string) => {
   // --- スケジュール追加 ---
   const addSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
-    // newTitle が空、または selectedDay が無い場合は処理しない
     if (!newTitle || !selectedDay) return;
 
     const res = await fetch(`${API_URL}/api/schedules`, {
@@ -167,16 +167,18 @@ const getEmbedUrl = (url: string) => {
       body: JSON.stringify({
         title: newTitle,
         description: newDescription,
-        date: format(selectedDay, 'yyyy-MM-dd')
+        date: format(selectedDay, 'yyyy-MM-dd'),
+        category: newCategory // ← 追加
       })
     });
 
     if (res.ok) {
       setNewTitle('');
       setNewDescription('');
+      setNewCategory('通知なし'); // ← リセット
       fetchSchedules(); 
     }
-  };
+};
 
   // 編集モーダルを開く
   const openEditModal = (schedule: Schedule) => {
@@ -238,6 +240,7 @@ const getEmbedUrl = (url: string) => {
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           
           <div className="xl:col-span-3 space-y-8">
+
             {/* --- カレンダー本体 --- */}
             <div className="bg-[#1e293b] rounded-2xl shadow-xl border border-slate-700 overflow-hidden">
               <div className="flex items-center justify-between p-6 border-b border-slate-700 bg-slate-800/50">
@@ -285,7 +288,15 @@ const getEmbedUrl = (url: string) => {
                       </span>
                       <div className="mt-2 space-y-1">
                         {dateSchedules.map(s => (
-                          <div key={s.id} className="text-xs font-bold bg-blue-600 text-white px-1.5 py-0.5 rounded truncate shadow-sm">
+                          <div 
+                            key={s.id} 
+                            className={`text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded truncate shadow-sm 
+                              ${s.category === '通知あり' 
+                                ? 'bg-orange-600 text-white border border-orange-400' 
+                                : 'bg-blue-600 text-white'
+                              }`}
+                          >
+                            {s.category === '通知あり' && <span className="mr-1">🔔</span>}
                             {s.title}
                           </div>
                         ))}
@@ -351,14 +362,31 @@ const getEmbedUrl = (url: string) => {
 
           {/* --- 右サイドバー：スケジュール入力 & 詳細 & お気に入り --- */}
           <div className="space-y-6">
+
             {/* 予定を登録 */}
             <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 shadow-lg">
               <h2 className="text-xl font-bold mb-4 text-blue-400">予定を登録</h2>
               <form onSubmit={addSchedule} className="space-y-4">
+                
+                {/* カテゴリー選択プルダウン */}
+                <div className="flex flex-col space-y-1">
+                  <label className="text-[10px] text-slate-400 ml-1">カテゴリー</label>
+                  <select 
+                    value={newCategory} 
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    className="w-full p-2 rounded bg-white text-black font-bold outline-none border-2 border-transparent focus:border-blue-400 text-sm"
+                  >
+                    <option value="通知なし">通知なし</option>
+                    <option value="通知あり">通知あり</option>
+                  </select>
+                </div>
+
                 <input type="text" value={newTitle} onChange={(e) => setNewTitle(e.target.value)}
                   className="w-full p-2 rounded bg-white text-black font-bold outline-none border-2 border-transparent focus:border-blue-400" placeholder="タイトル" />
+                
                 <textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)}
                   className="w-full p-2 rounded bg-white text-black font-medium outline-none h-20 border-2 border-transparent focus:border-blue-400" placeholder="詳細" />
+                
                 <button className="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-lg font-bold transition shadow-lg active:scale-95 text-white">
                   {format(selectedDay, 'MM/dd', { locale: ja })} に追加
                 </button>

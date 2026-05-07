@@ -13,27 +13,33 @@ app.use('/api/*', cors({
 
 // --- スケジュール用 ---
 app.get('/api/schedules', async (c) => {
+  // 全カラム取得するので、フロントエンド側で category を参照可能になります
   const { results } = await c.env.DB.prepare('SELECT * FROM schedules ORDER BY date ASC').all();
   return c.json(results);
 });
 
 app.post('/api/schedules', async (c) => {
-  const { title, description, date } = await c.req.json();
+  // category をリクエストボディから取得
+  const { title, description, date, category } = await c.req.json();
+  
   await c.env.DB.prepare(
-    'INSERT INTO schedules (title, description, date) VALUES (?, ?, ?)'
-  ).bind(title, description, date).run();
+    // INSERT文に category を追加
+    'INSERT INTO schedules (title, description, date, category) VALUES (?, ?, ?, ?)'
+  ).bind(title, description, date, category || '通知なし').run(); // undefined対策で初期値を指定
+  
   return c.json({ success: true });
 });
 
 // --- スケジュールの更新 (PUT) ---
 app.put('/api/schedules/:id', async (c) => {
   const id = c.req.param('id');
-  const { title, description, date } = await c.req.json();
+  const { title, description, date, category } = await c.req.json();
   
   await c.env.DB.prepare(
-    "UPDATE schedules SET title = ?, description = ?, date = ? WHERE id = ?"
+    // UPDATE文に category を追加
+    "UPDATE schedules SET title = ?, description = ?, date = ?, category = ? WHERE id = ?"
   )
-  .bind(title, description, date, id)
+  .bind(title, description, date, category, id)
   .run();
   
   return c.json({ success: true });
