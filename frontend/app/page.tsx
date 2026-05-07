@@ -16,11 +16,9 @@ import { ja } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Activity } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
-type Schedule = {
-  id: number; title: string; description: string; date: string;
-}
-
+type Schedule = { id: number; title: string; description: string; date: string; };
 type LinkItem = { id: number; title: string; url: string; };
+type VideoItem = { id: number; title: string; url: string; category: string; };
 
 export default function Home() {
   const [schedules, setSchedules] = useState<Schedule[]>([])
@@ -37,8 +35,10 @@ export default function Home() {
   const [links, setLinks] = useState<LinkItem[]>([]);
   const [newLinkTitle, setNewLinkTitle] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
-
-  // 環境変数の取得を1箇所にまとめるとスッキリします
+  const [videos, setVideos] = useState<VideoItem[]>([]);
+  const [newVideoTitle, setNewVideoTitle] = useState('');
+  const [newVideoUrl, setNewVideoUrl] = useState('');
+  // 環境変数の取得
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
 
   // --- スケジュール取得 ---
@@ -92,11 +92,45 @@ export default function Home() {
     fetchLinks();
   };
 
+  // 動画取得
+  const fetchVideos = () => {
+  fetch(`${API_URL}/api/videos`)
+    .then(res => res.json())
+    .then(setVideos);
+  };
+
+  // YouTube URLを埋め込み用に変換する関数
+const getEmbedUrl = (url: string) => {
+  if (url.includes('youtube.com/watch?v=')) {
+    return url.replace('watch?v=', 'embed/');
+  } else if (url.includes('youtu.be/')) {
+    return url.replace('youtu.be/', 'www.youtube.com/embed/');
+  }
+  return url; // YouTube以外はそのまま
+};
+
+  // 動画追加
+  const addVideo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newVideoTitle || !newVideoUrl) return;
+    const res = await fetch(`${API_URL}/api/videos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: newVideoTitle, url: newVideoUrl, category: 'サッカー' })
+    });
+    if (res.ok) {
+      setNewVideoTitle('');
+      setNewVideoUrl('');
+      fetchVideos();
+    }
+  };
+
   // 初回読み込み
   useEffect(() => { 
     fetchSchedules();
     fetchConditions(); 
     fetchLinks();
+    fetchVideos();
   }, [])
 
   // --- コンディション登録 ---
@@ -190,7 +224,6 @@ export default function Home() {
   const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 })
   const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 0 })
   const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd })
-
   const selectedDateStr = format(selectedDay, 'yyyy-MM-dd')
   const daySchedules = schedules.filter(s => s.date === selectedDateStr)
 
@@ -376,6 +409,66 @@ export default function Home() {
                     </button>
                   </div>
                 ))}
+              </div>
+            </div>
+            
+            {/* お気に入り動画 */}
+            <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 shadow-lg">
+              <h2 className="text-xl font-bold mb-4 text-orange-400">お気に入り動画</h2>
+              
+              {/* 動画登録フォーム */}
+              <form onSubmit={addVideo} className="space-y-3 mb-6">
+                <input 
+                  value={newVideoTitle} 
+                  onChange={(e) => setNewVideoTitle(e.target.value)}
+                  className="w-full p-2 rounded bg-slate-800 text-sm border border-slate-700 outline-none focus:border-orange-500 text-white" 
+                  placeholder="動画タイトル（例：シュート練習）" 
+                />
+                <input 
+                  value={newVideoUrl} 
+                  onChange={(e) => setNewVideoUrl(e.target.value)}
+                  className="w-full p-2 rounded bg-slate-800 text-sm border border-slate-700 outline-none focus:border-orange-500 text-white" 
+                  placeholder="YouTube URLなど" 
+                />
+                <button className="w-full bg-orange-600 hover:bg-orange-500 py-2 rounded font-bold text-xs transition text-white">
+                  動画を保存
+                </button>
+              </form>
+
+              {/* 動画リスト */}
+              <div className="grid grid-cols-1 gap-4">
+                {videos.length > 0 ? (
+                  videos.map(video => (
+                    <div key={video.id} className="group bg-slate-800 p-3 rounded-xl border border-slate-700 shadow-inner">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold text-orange-400">🎥 {video.title}</span>
+                        <button 
+                          onClick={() => {
+                            if(confirm('動画を削除しますか？')) {
+                              fetch(`${API_URL}/api/videos/${video.id}`, { method: 'DELETE' }).then(fetchVideos);
+                            }
+                          }} 
+                          className="text-[10px] text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          削除
+                        </button>
+                      </div>
+
+                      {/* 埋め込みプレイヤー */}
+                      <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-black border border-slate-700">
+                        <iframe
+                          src={getEmbedUrl(video.url)}
+                          title={video.title}
+                          className="absolute top-0 left-0 w-full h-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        ></iframe>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-slate-500 text-xs italic text-center py-4">登録された動画はありません</p>
+                )}
               </div>
             </div>
           </div>

@@ -98,4 +98,36 @@ app.delete('/api/links/:id', async (c) => {
   return c.json({ success: true });
 });
 
+// --- 動画一覧の取得 ---
+app.get('/api/videos', async (c) => {
+  const { results } = await c.env.DB.prepare(
+    "SELECT * FROM videos ORDER BY created_at DESC"
+  ).all();
+  return c.json(results);
+});
+
+// --- 動画の追加 ---
+app.post('/api/videos', async (c) => {
+  const { title, url, category } = await c.req.json();
+  
+  try {
+    await c.env.DB.prepare(
+      "INSERT INTO videos (title, url, category) VALUES (?, ?, ?)"
+    )
+    .bind(title, url, category || '未分類')
+    .run();
+    
+    return c.json({ success: true });
+  } catch (e) {
+    return c.json({ success: false, error: e }, 500);
+  }
+});
+
+// --- 動画の削除 ---
+app.delete('/api/videos/:id', async (c) => {
+  const id = c.req.param('id');
+  await c.env.DB.prepare("DELETE FROM videos WHERE id = ?").bind(id).run();
+  return c.json({ success: true });
+});
+
 export default app
