@@ -230,42 +230,52 @@ const getEmbedUrl = (url: string) => {
   const daySchedules = schedules.filter(s => s.date === selectedDateStr)
 
   return (
-    <main className="min-h-screen bg-[#0f172a] text-slate-200 p-4 md:p-8">
-      <div className="max-w-350 mx-auto">
+    <main className="min-h-screen bg-[#0a0f1e] text-slate-300 p-4 md:p-8 font-mono">
+      <div className="max-w-7xl mx-auto">
         
-        <h1 className="text-3xl font-bold mb-8 text-blue-400 flex items-center gap-2">
-          ⚽ MyPitch Dash
-        </h1>
+        {/* --- HEADER: App Logo & Status --- */}
+        <header className="mb-10 border-b-4 border-double border-slate-700 pb-4">
+          <h1 className="text-4xl font-black tracking-tighter text-emerald-500 flex items-center gap-3">
+            <span className="bg-emerald-500 text-[#0a0f1e] px-2 py-0.5 rounded">MY</span>
+            PITCH <span className="text-slate-500 text-lg font-light tracking-widest ml-2 uppercase italic">Tactical Dashboard v2.0</span>
+          </h1>
+        </header>
         
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-10">
           
-          <div className="xl:col-span-3 space-y-8">
+          {/* --- MAIN COLUMN: Calendar & Analysis --- */}
+          <div className="xl:col-span-3 space-y-12">
 
-            {/* --- カレンダー本体 --- */}
-            <div className="bg-[#1e293b] rounded-2xl shadow-xl border border-slate-700 overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-slate-700 bg-slate-800/50">
-                <h2 className="text-2xl font-bold text-blue-400">
-                  {format(currentMonth, 'yyyy年 M月', { locale: ja })}
+            {/* BLOCK 1: STRATEGIC CALENDAR */}
+            <section className="bg-[#111827] rounded-sm shadow-2xl border-t-2 border-l-2 border-slate-700 relative">
+              {/* 装飾用の角パーツ */}
+              <div className="absolute top-0 right-0 w-8 h-8 border-r-2 border-t-2 border-emerald-500/50"></div>
+              
+              <div className="flex items-center justify-between p-6 border-b border-slate-800 bg-slate-900/50">
+                <h2 className="text-xl font-black text-white underline decoration-emerald-500 decoration-4 underline-offset-8">
+                  {format(currentMonth, 'yyyy / MM', { locale: ja })}
                 </h2>
-                <div className="flex gap-4">
-                  <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 hover:bg-slate-700 rounded-full transition-colors text-blue-400">
-                    <ChevronLeft size={28} />
+                <div className="flex gap-2">
+                  <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 bg-slate-800 hover:bg-emerald-600 rounded-md transition-all text-white border border-slate-600">
+                    <ChevronLeft size={20} />
                   </button>
-                  <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-2 hover:bg-slate-700 rounded-full transition-colors text-blue-400">
-                    <ChevronRight size={28} />
+                  <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-2 bg-slate-800 hover:bg-emerald-600 rounded-md transition-all text-white border border-slate-600">
+                    <ChevronRight size={20} />
                   </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-7 border-b border-slate-700 bg-slate-800/30">
-                {['日', '月', '火', '水', '木', '金', '土'].map((day, i) => (
-                  <div key={day} className={`py-4 text-center text-sm font-black border-r last:border-r-0 border-slate-700/50 ${i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-slate-400'}`}>
+              {/* Day of Week Header */}
+              <div className="grid grid-cols-7 bg-slate-900/80">
+                {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day, i) => (
+                  <div key={day} className={`py-3 text-center text-[10px] font-bold tracking-widest border-r border-slate-800 last:border-r-0 ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-slate-500'}`}>
                     {day}
                   </div>
                 ))}
               </div>
 
-              <div className="grid grid-cols-7">
+              {/* Calendar Grid */}
+              <div className="grid grid-cols-7 border-t border-slate-800">
                 {calendarDays.map((date, i) => {
                   const dateStr = format(date, 'yyyy-MM-dd')
                   const dateSchedules = schedules.filter(s => s.date === dateStr)
@@ -277,27 +287,26 @@ const getEmbedUrl = (url: string) => {
                     <div
                       key={dateStr}
                       onClick={() => setSelectedDay(date)}
-                      className={`min-h-32 p-2 border-r border-b border-slate-700/50 transition-all cursor-pointer relative
-                        ${!isCurrentMonth ? 'bg-slate-900/20 text-slate-600' : 'hover:bg-slate-700/30'}
-                        ${isSelected ? 'bg-blue-900/40 ring-2 ring-inset ring-blue-500/50' : ''}
+                      className={`min-h-30 p-2 border-r border-b border-slate-800/80 transition-all cursor-pointer relative
+                        ${!isCurrentMonth ? 'bg-black/40 opacity-30' : 'hover:bg-emerald-900/20'}
+                        ${isSelected ? 'bg-emerald-900/30 ring-1 ring-inset ring-emerald-500' : ''}
                         ${(i + 1) % 7 === 0 ? 'border-r-0' : ''}
                       `}
                     >
-                      <span className={`text-lg font-black ${isToday ? 'text-blue-400 border-b-2 border-blue-400' : ''}`}>
+                      <span className={`text-sm font-bold ${isToday ? 'bg-emerald-500 text-black px-1' : ''}`}>
                         {format(date, 'd')}
                       </span>
                       <div className="mt-2 space-y-1">
                         {dateSchedules.map(s => (
                           <div 
                             key={s.id} 
-                            className={`text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded truncate shadow-sm 
+                            className={`text-[9px] uppercase font-bold px-1 py-0.5 rounded-sm truncate
                               ${s.category === '通知あり' 
-                                ? 'bg-orange-600 text-white border border-orange-400' 
-                                : 'bg-blue-600 text-white'
+                                ? 'bg-red-950 text-red-400 border border-red-800' 
+                                : 'bg-slate-800 text-emerald-400 border border-emerald-900/50'
                               }`}
                           >
-                            {s.category === '通知あり' && <span className="mr-1">🔔</span>}
-                            {s.title}
+                            {s.category === '通知あり' && '!' } {s.title}
                           </div>
                         ))}
                       </div>
@@ -305,235 +314,186 @@ const getEmbedUrl = (url: string) => {
                   )
                 })}
               </div>
-            </div>
+            </section>
 
-            {/* --- コンディションログ（グラフ & 入力） --- */}
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-blue-400 flex items-center gap-2">
-                <Activity size={28} /> コンディションログ
-              </h2>
-              
-              <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 shadow-xl">
-                <form className="flex flex-wrap items-end gap-6">
-                  <div className="flex-1 min-w-40">
-                    <label className="block text-sm text-slate-400 mb-2 font-bold">体重 (kg)</label>
-                    <input 
-                      type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)}
-                      className="w-full p-3 rounded bg-slate-800 text-white font-bold border-2 border-slate-700 focus:border-blue-500 outline-none transition"
-                      placeholder="65.0"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-40">
-                    <label className="block text-sm text-slate-400 mb-2 font-bold">体脂肪率 (%)</label>
-                    <input 
-                      type="number" step="0.1" value={bodyFat} onChange={(e) => setBodyFat(e.target.value)}
-                      className="w-full p-3 rounded bg-slate-800 text-white font-bold border-2 border-slate-700 focus:border-blue-500 outline-none transition"
-                      placeholder="12.0"
-                    />
-                  </div>
-                  <button 
-                    type="button" 
-                    onClick={addCondition} 
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-lg font-bold shadow-lg transition active:scale-95"
-                  >
-                    {format(selectedDay, 'M/d')} のコンディションを記録
-                  </button>
-                </form>
+            {/* BLOCK 2: CONDITION ANALYTICS */}
+            <section className="space-y-6">
+              <div className="flex items-center gap-3 border-l-4 border-emerald-500 pl-4">
+                <Activity size={24} className="text-emerald-500" />
+                <h2 className="text-2xl font-black tracking-tighter uppercase italic">Physical Analytics</h2>
               </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Input Form */}
+                <div className="md:col-span-1 bg-[#111827] p-6 border border-slate-800 rounded-sm shadow-xl">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Weight (kg)</label>
+                      <input 
+                        type="number" step="0.1" value={weight} onChange={(e) => setWeight(e.target.value)}
+                        className="w-full p-2 bg-black border border-slate-700 focus:border-emerald-500 outline-none text-white font-bold"
+                        placeholder="00.0"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Body Fat (%)</label>
+                      <input 
+                        type="number" step="0.1" value={bodyFat} onChange={(e) => setBodyFat(e.target.value)}
+                        className="w-full p-2 bg-black border border-slate-700 focus:border-emerald-500 outline-none text-white font-bold"
+                        placeholder="00.0"
+                      />
+                    </div>
+                    <button 
+                      onClick={addCondition} 
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-[#0a0f1e] py-3 font-black text-sm uppercase tracking-tighter transition-all active:translate-y-1 shadow-[4px_4px_0px_0px_rgba(16,185,129,0.2)]"
+                    >
+                      Log Status ({format(selectedDay, 'MM/dd')})
+                    </button>
+                  </div>
+                </div>
 
-              <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 shadow-xl min-h-80">
-                <h3 className="text-sm font-bold text-slate-400 mb-6">最近の推移（体重・体脂肪率）</h3>
-                <div className="w-full h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={conditions}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                      <XAxis dataKey="date" stroke="#94a3b8" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
-                      <YAxis yAxisId="left" domain={['dataMin - 1', 'dataMax + 1']} stroke="#60a5fa" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
-                      <YAxis yAxisId="right" orientation="right" domain={['dataMin - 1', 'dataMax + 1']} stroke="#34d399" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
-                      <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }} />
-                      <Line yAxisId="left" type="monotone" dataKey="weight" name="体重" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6' }} />
-                      <Line yAxisId="right" type="monotone" dataKey="fat" name="体脂肪率" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981' }} />
-                    </LineChart>
-                  </ResponsiveContainer>
+                {/* Graph Visualization */}
+                <div className="md:col-span-2 bg-[#111827] p-6 border border-slate-800 rounded-sm shadow-xl">
+                  <h3 className="text-[10px] font-bold text-slate-500 mb-6 uppercase tracking-widest border-b border-dashed border-slate-700 pb-2">Growth Chart / Performance Curve</h3>
+                  <div className="w-full h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={conditions}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
+                        <XAxis dataKey="date" stroke="#4b5563" tick={{ fontSize: 10 }} axisLine={false} />
+                        <YAxis yAxisId="left" domain={['dataMin - 1', 'dataMax + 1']} hide />
+                        <Tooltip contentStyle={{ backgroundColor: '#0a0f1e', border: '1px solid #334155' }} />
+                        <Line yAxisId="left" type="stepAfter" dataKey="weight" stroke="#10b981" strokeWidth={2} dot={{ r: 3, fill: '#10b981' }} />
+                        <Line yAxisId="left" type="monotone" dataKey="fat" stroke="#3b82f6" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
-            </div>
+            </section>
           </div>
 
-          {/* --- 右サイドバー：スケジュール入力 & 詳細 & お気に入り --- */}
-          <div className="space-y-6">
+          {/* --- SIDEBAR: Ops & Intelligence --- */}
+          <aside className="space-y-8">
 
-            {/* 予定を登録 */}
-            <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 shadow-lg">
-              <h2 className="text-xl font-bold mb-4 text-blue-400">予定を登録</h2>
+            {/* SIDE BLOCK 1: ENTRY FORM */}
+            <div className="bg-[#111827] p-6 border-b-4 border-emerald-500 shadow-2xl">
+              <h2 className="text-lg font-black mb-6 uppercase tracking-widest flex items-center gap-2">
+                <span className="w-2 h-2 bg-emerald-500 animate-pulse"></span> Mission Entry
+              </h2>
               <form onSubmit={addSchedule} className="space-y-4">
-                
-                {/* カテゴリー選択プルダウン */}
-                <div className="flex flex-col space-y-1">
-                  <label className="text-[10px] text-slate-400 ml-1">カテゴリー</label>
+                <div className="group">
+                  <label className="text-[10px] font-bold text-slate-500 mb-1 block uppercase">Category</label>
                   <select 
                     value={newCategory} 
                     onChange={(e) => setNewCategory(e.target.value)}
-                    className="w-full p-2 rounded bg-white text-black font-bold outline-none border-2 border-transparent focus:border-blue-400 text-sm"
+                    className="w-full p-2 bg-slate-900 border border-slate-700 text-emerald-400 font-bold focus:border-emerald-500 outline-none appearance-none"
                   >
-                    <option value="通知なし">通知なし</option>
-                    <option value="通知あり">通知あり</option>
+                    <option value="通知なし">STANDARD</option>
+                    <option value="通知あり">URGENT / NOTIFY</option>
                   </select>
                 </div>
-
                 <input type="text" value={newTitle} onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full p-2 rounded bg-white text-black font-bold outline-none border-2 border-transparent focus:border-blue-400" placeholder="タイトル" />
-                
+                  className="w-full p-2 bg-transparent border-b-2 border-slate-700 focus:border-emerald-500 outline-none text-white font-bold placeholder:text-slate-700" placeholder="MISSION TITLE" />
                 <textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)}
-                  className="w-full p-2 rounded bg-white text-black font-medium outline-none h-20 border-2 border-transparent focus:border-blue-400" placeholder="詳細" />
-                
-                <button className="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-lg font-bold transition shadow-lg active:scale-95 text-white">
-                  {format(selectedDay, 'MM/dd', { locale: ja })} に追加
+                  className="w-full p-2 bg-slate-900/50 border border-slate-800 text-sm h-24 focus:border-emerald-500 outline-none text-slate-400" placeholder="Details and tactical notes..." />
+                <button className="w-full bg-slate-800 hover:bg-slate-700 text-emerald-500 border border-emerald-500/50 py-3 font-bold text-xs uppercase tracking-[0.2em] transition-all">
+                  Add to Briefing
                 </button>
               </form>
             </div>
 
-            {/* 本日の詳細 */}
-            <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 min-h-75 shadow-lg">
-              <h2 className="text-xl font-bold mb-4 text-blue-400">本日の詳細</h2>
-              <div className="space-y-3">
+            {/* SIDE BLOCK 2: DAILY BRIEFING */}
+            <div className="bg-transparent border border-slate-800 p-6 shadow-lg">
+              <h2 className="text-lg font-black mb-4 uppercase italic text-slate-400">Daily Briefing</h2>
+              <div className="space-y-4">
                 {daySchedules.length > 0 ? (
                   daySchedules.map((item: Schedule) => (
-                    <div key={item.id} className="p-4 rounded bg-[#334155] border-l-4 border-blue-500 shadow-md group relative">
-                      <div className="font-black text-white text-lg">{item.title}</div>
-                      <div className="text-sm text-slate-300 whitespace-pre-wrap">{item.description}</div>
+                    <div key={item.id} className="p-4 bg-slate-900/40 border border-slate-800 border-l-4 border-l-emerald-600 group relative">
+                      <div className="font-bold text-white text-md uppercase tracking-tight">{item.title}</div>
+                      <div className="text-xs text-slate-500 mt-1 leading-relaxed">{item.description}</div>
                       <button 
                         onClick={() => openEditModal(item)}
-                        className="absolute top-2 right-2 p-1 px-2 bg-slate-600 hover:bg-blue-500 rounded text-xs text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute -top-2 -right-2 bg-emerald-500 text-[#0a0f1e] p-1 px-2 text-[8px] font-black opacity-0 group-hover:opacity-100 transition-all"
                       >
-                        編集
+                        EDIT_UNIT
                       </button>
                     </div>
                   ))
-                ) : <p className="text-slate-500 italic text-center py-10">予定なし</p>}
+                ) : <p className="text-slate-700 text-xs font-bold tracking-widest text-center py-6 border border-dashed border-slate-800">NO MISSIONS PLANNED</p>}
               </div>
             </div>
 
-            {/* お気に入りリンク */}
-            <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 shadow-lg">
-              <h2 className="text-xl font-bold mb-4 text-emerald-400">お気に入りリンク</h2>
-              <form onSubmit={addLink} className="space-y-3 mb-6">
-                <input value={newLinkTitle} onChange={(e) => setNewLinkTitle(e.target.value)}
-                  className="w-full p-2 rounded bg-slate-800 text-sm border border-slate-700 outline-none focus:border-emerald-500 text-white" placeholder="サイト名" />
-                <input value={newLinkUrl} onChange={(e) => setNewLinkUrl(e.target.value)}
-                  className="w-full p-2 rounded bg-slate-800 text-sm border border-slate-700 outline-none focus:border-emerald-500 text-white" placeholder="https://..." />
-                <button className="w-full bg-emerald-600 hover:bg-emerald-500 py-2 rounded font-bold text-xs transition text-white">
-                  リンクを追加
-                </button>
-              </form>
-              <div className="grid grid-cols-1 gap-2">
+            {/* SIDE BLOCK 3: INTEL LINKS */}
+            <div className="bg-[#111827] p-6 border border-slate-800">
+              <h2 className="text-xs font-black mb-4 uppercase tracking-[0.3em] text-emerald-500">Intelligence Source</h2>
+              <div className="space-y-2">
                 {links.map(link => (
-                  <div key={link.id} className="flex items-center justify-between group bg-slate-800/50 p-2 px-3 rounded hover:bg-slate-700 transition">
-                    <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-blue-400 hover:underline truncate mr-2">
+                  <div key={link.id} className="flex items-center justify-between group border-b border-slate-800 py-2">
+                    <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-slate-400 hover:text-emerald-400 transition-colors truncate italic">
                       {link.title}
                     </a>
-                    <button onClick={() => deleteLink(link.id)} className="text-[10px] text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                      削除
+                    <button onClick={() => deleteLink(link.id)} className="text-[9px] text-red-900 font-bold hover:text-red-500 opacity-0 group-hover:opacity-100">
+                      DEL
                     </button>
                   </div>
                 ))}
               </div>
             </div>
-            
-            {/* お気に入り動画 */}
-            <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-700 shadow-lg">
-              <h2 className="text-xl font-bold mb-4 text-orange-400">お気に入り動画</h2>
-              
-              {/* 動画登録フォーム */}
-              <form onSubmit={addVideo} className="space-y-3 mb-6">
-                <input 
-                  value={newVideoTitle} 
-                  onChange={(e) => setNewVideoTitle(e.target.value)}
-                  className="w-full p-2 rounded bg-slate-800 text-sm border border-slate-700 outline-none focus:border-orange-500 text-white" 
-                  placeholder="動画タイトル（例：シュート練習）" 
-                />
-                <input 
-                  value={newVideoUrl} 
-                  onChange={(e) => setNewVideoUrl(e.target.value)}
-                  className="w-full p-2 rounded bg-slate-800 text-sm border border-slate-700 outline-none focus:border-orange-500 text-white" 
-                  placeholder="YouTube URLなど" 
-                />
-                <button className="w-full bg-orange-600 hover:bg-orange-500 py-2 rounded font-bold text-xs transition text-white">
-                  動画を保存
-                </button>
-              </form>
 
-              {/* 動画リスト */}
+            {/* SIDE BLOCK 4: TRAINING ARCHIVE (Videos) */}
+            <div className="bg-black/50 p-4 border-2 border-dashed border-slate-800">
+              <h2 className="text-sm font-black mb-4 uppercase text-orange-500">Training Film</h2>
               <div className="grid grid-cols-1 gap-4">
-                {videos.length > 0 ? (
-                  videos.map(video => (
-                    <div key={video.id} className="group bg-slate-800 p-3 rounded-xl border border-slate-700 shadow-inner">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-bold text-orange-400">🎥 {video.title}</span>
-                        <button 
-                          onClick={() => {
-                            if(confirm('動画を削除しますか？')) {
-                              fetch(`${API_URL}/api/videos/${video.id}`, { method: 'DELETE' }).then(fetchVideos);
-                            }
-                          }} 
-                          className="text-[10px] text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          削除
-                        </button>
-                      </div>
-
-                      {/* 埋め込みプレイヤー */}
-                      <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-black border border-slate-700">
-                        <iframe
-                          src={getEmbedUrl(video.url)}
-                          title={video.title}
-                          className="absolute top-0 left-0 w-full h-full"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        ></iframe>
-                      </div>
+                {videos.map(video => (
+                  <div key={video.id} className="bg-[#0a0f1e] p-2 border border-slate-800">
+                    <div className="text-[9px] font-bold text-slate-500 mb-1 truncate">FILE: {video.title}</div>
+                    <div className="relative aspect-video grayscale hover:grayscale-0 transition-all duration-500">
+                      <iframe
+                        src={getEmbedUrl(video.url)}
+                        title={video.title}
+                        className="absolute w-full h-full"
+                        allowFullScreen
+                      ></iframe>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-slate-500 text-xs italic text-center py-4">登録された動画はありません</p>
-                )}
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
+          </aside>          
         </div>
       </div>
 
-      {/* --- モーダル（最後に配置） --- */}
+      {/* --- MODAL: Tactical Re-assignment --- */}
       {editingSchedule && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-100 p-4">
-          <div className="bg-[#1e293b] w-full max-w-md p-6 rounded-2xl border border-slate-700 shadow-2xl">
-            <h2 className="text-xl mb-4 text-blue-400 font-bold">予定を編集</h2>
-            <div className="space-y-4">
+        <div className="fixed inset-0 bg-[#0a0f1e]/90 backdrop-blur-md flex items-center justify-center z-100 p-4">
+          <div className="bg-[#111827] w-full max-w-md p-8 border-t-4 border-emerald-500 shadow-[0_0_50px_rgba(16,185,129,0.1)]">
+            <h2 className="text-2xl font-black mb-6 text-white uppercase italic tracking-tighter">Edit Mission</h2>
+            <div className="space-y-6">
               <div>
-                <label className="block text-xs text-slate-400 mb-1 font-bold">タイトル</label>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Objective Title</label>
                 <input 
-                  className="w-full p-3 rounded bg-white text-black font-bold outline-none border-2 border-transparent focus:border-blue-500"
+                  className="w-full p-3 bg-black border border-slate-700 text-emerald-400 font-bold outline-none focus:border-emerald-500"
                   value={editTitle} 
                   onChange={(e) => setEditTitle(e.target.value)} 
                 />
               </div>
               <div>
-                <label className="block text-xs text-slate-400 mb-1 font-bold">詳細</label>
+                <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Strategic Details</label>
                 <textarea 
-                  className="w-full p-3 rounded bg-white text-black font-medium h-32 outline-none border-2 border-transparent focus:border-blue-500"
+                  className="w-full p-3 bg-black border border-slate-700 text-slate-400 text-sm h-32 outline-none focus:border-emerald-500"
                   value={editDescription} 
                   onChange={(e) => setEditDescription(e.target.value)} 
                 />
               </div>
-              <div className="flex gap-2 pt-2 text-white">
-                <button onClick={updateSchedule} className="flex-1 bg-blue-600 hover:bg-blue-500 py-3 rounded-lg font-bold transition shadow-lg active:scale-95">
-                  更新する
+              <div className="grid grid-cols-2 gap-3 pt-4">
+                <button onClick={updateSchedule} className="bg-emerald-600 hover:bg-emerald-500 text-[#0a0f1e] py-3 font-black text-sm uppercase">
+                  Confirm
                 </button>
-                <button onClick={() => deleteSchedule(editingSchedule.id)} className="bg-red-600 hover:bg-red-500 px-6 rounded-lg font-bold transition shadow-lg active:scale-95">
-                  削除
+                <button onClick={() => deleteSchedule(editingSchedule.id)} className="bg-red-950 text-red-500 border border-red-900 py-3 font-bold text-sm uppercase">
+                  Abort Unit
                 </button>
-                <button onClick={() => setEditingSchedule(null)} className="bg-slate-600 hover:bg-slate-500 px-6 rounded-lg font-bold transition">
-                  閉じる
+                <button onClick={() => setEditingSchedule(null)} className="col-span-2 bg-slate-800 text-slate-400 py-2 font-bold text-xs uppercase tracking-widest mt-2 hover:bg-slate-700">
+                  Return to Dashboard
                 </button>
               </div>
             </div>
