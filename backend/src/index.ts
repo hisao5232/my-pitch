@@ -2,7 +2,8 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 
 type Bindings = {
-  DB: D1Database
+  DB: D1Database;
+  DISCORD_WEBHOOK_URL: string;
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -136,4 +137,35 @@ app.delete('/api/videos/:id', async (c) => {
   return c.json({ success: true });
 });
 
-export default app
+// 定期実行（Cron）イベント
+export default {
+  fetch: app.fetch, // HonoのAPI処理用
+  async scheduled(event: any, env: Bindings, ctx: ExecutionContext) {
+    ctx.waitUntil(handleScheduled(env)); // 定期実行の処理を非同期で実行
+  },
+};
+
+async function handleScheduled(env: Bindings) {
+  // 日本時間の「今日」の日付を取得 (JST = UTC+9)
+  const now = new Date();
+  const jstDate = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+  const todayStr = jstDate.toISOString().split('T')[0];
+
+  // 今日、かつ「通知あり」のスケジュールを検索
+  const { results } = await env.DB.prepare(
+    "SELECT title, description FROM schedules WHERE date = ? AND category = '通知あり'"
+  ).bind(todayStr).all();
+
+  if (results && results.length > 0) {
+    // Discordへ送るメッセージを作成
+    const message = results.map(s => `【${s.title}】\n${s.description || '詳細なし'}`).join('\n\n');
+
+    await fetch(env.DISCORD_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: `🌅 **おはようございます！本日の予定をお知らせします**\n\n${message}`
+      })
+    });
+  }
+}
