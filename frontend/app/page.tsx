@@ -39,6 +39,7 @@ export default function Home() {
   const [newVideoTitle, setNewVideoTitle] = useState('');
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [newCategory, setNewCategory] = useState('通知なし');
+  const [holidays, setHolidays] = useState<string[]>([]);
   // 環境変数の取得
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
 
@@ -221,6 +222,16 @@ const getEmbedUrl = (url: string) => {
     }
   };
 
+  // 休日の切り替え関数
+  const toggleHoliday = (e: React.MouseEvent, dateStr: string) => {
+    e.stopPropagation(); // マス自体のクリックイベント（選択）が発火しないようにする
+    if (holidays.includes(dateStr)) {
+      setHolidays(holidays.filter(d => d !== dateStr));
+    } else {
+      setHolidays([...holidays, dateStr]);
+    }
+  };
+
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(monthStart)
   const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 })
@@ -246,7 +257,7 @@ const getEmbedUrl = (url: string) => {
           {/* --- MAIN COLUMN: Calendar & Analysis --- */}
           <div className="xl:col-span-3 space-y-12">
 
-            {/* BLOCK 1: STRATEGIC CALENDAR */}
+            {/* １．カレンダーブロック */}
             <section className="bg-[#111827] rounded-sm shadow-2xl border-t-2 border-l-2 border-slate-700 relative">
               {/* 装飾用の角パーツ */}
               <div className="absolute top-0 right-0 w-8 h-8 border-r-2 border-t-2 border-emerald-500/50"></div>
@@ -265,7 +276,7 @@ const getEmbedUrl = (url: string) => {
                 </div>
               </div>
 
-              {/* Day of Week Header */}
+              {/* 曜日ヘッダー */}
               <div className="grid grid-cols-7 bg-slate-900/80">
                 {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day, i) => (
                   <div key={day} className={`py-3 text-center text-[10px] font-bold tracking-widest border-r border-slate-800 last:border-r-0 ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-slate-500'}`}>
@@ -274,7 +285,7 @@ const getEmbedUrl = (url: string) => {
                 ))}
               </div>
 
-              {/* Calendar Grid */}
+              {/* カレンダーグリッド */}
               <div className="grid grid-cols-7 border-t border-slate-800">
                 {calendarDays.map((date, i) => {
                   const dateStr = format(date, 'yyyy-MM-dd')
@@ -282,28 +293,55 @@ const getEmbedUrl = (url: string) => {
                   const isSelected = isSameDay(date, selectedDay)
                   const isCurrentMonth = isSameMonth(date, monthStart)
                   const isToday = isSameDay(date, new Date())
+  
+                  // 休日の判定
+                  const isHoliday = holidays.includes(dateStr)
 
                   return (
                     <div
                       key={dateStr}
                       onClick={() => setSelectedDay(date)}
-                      className={`min-h-30 p-2 border-r border-b border-slate-800/80 transition-all cursor-pointer relative
-                        ${!isCurrentMonth ? 'bg-black/40 opacity-30' : 'hover:bg-emerald-900/20'}
-                        ${isSelected ? 'bg-emerald-900/30 ring-1 ring-inset ring-emerald-500' : ''}
+                      className={`min-h-30 p-2 border-r border-b border-slate-800/80 transition-all cursor-pointer relative group
+                        ${!isCurrentMonth ? 'bg-black/40 opacity-30' : 'hover:bg-emerald-900/10'}
+                        ${isSelected ? 'bg-emerald-900/20 ring-1 ring-inset ring-emerald-500/50' : ''}
+                        ${isHoliday ? 'bg-red-950/40' : ''} 
                         ${(i + 1) % 7 === 0 ? 'border-r-0' : ''}
                       `}
                     >
-                      <span className={`text-sm font-bold ${isToday ? 'bg-emerald-500 text-black px-1' : ''}`}>
-                        {format(date, 'd')}
-                      </span>
+                      {/* --- 休日ボタン --- */}
+                      <button
+                        onClick={(e) => toggleHoliday(e, dateStr)}
+                        className={`absolute top-1 right-1 w-4 h-4 rounded-full border transition-all flex items-center justify-center
+                          ${isHoliday 
+                            ? 'bg-red-600 border-red-400 scale-110 shadow-[0_0_8px_rgba(220,38,38,0.6)]' 
+                            : 'bg-slate-800 border-slate-700 opacity-0 group-hover:opacity-100 hover:bg-red-900'
+                          }`}
+                      >
+                        <span className="text-[8px] text-white font-black">{isHoliday ? 'OFF' : ''}</span>
+                      </button>
+
+                      <div className="flex flex-col">
+                        <span className={`text-sm font-bold w-fit
+                          ${isToday ? 'bg-emerald-500 text-black px-1' : ''}
+                          ${isHoliday ? 'text-red-400' : 'text-slate-300'}
+                        `}>
+                          {format(date, 'd')}
+                        </span>
+                        
+                        {/* 休日時のラベル表示（オプション） */}
+                        {isHoliday && (
+                          <span className="text-[8px] font-black text-red-600 tracking-tighter mt-0.5">OFF_DUTY</span>
+                        )}
+                      </div>
+
                       <div className="mt-2 space-y-1">
                         {dateSchedules.map(s => (
                           <div 
                             key={s.id} 
                             className={`text-[9px] uppercase font-bold px-1 py-0.5 rounded-sm truncate
                               ${s.category === '通知あり' 
-                                ? 'bg-red-950 text-red-400 border border-red-800' 
-                                : 'bg-slate-800 text-emerald-400 border border-emerald-900/50'
+                                ? 'bg-red-950/80 text-red-400 border border-red-800' 
+                                : 'bg-slate-800/80 text-emerald-400 border border-emerald-900/50'
                               }`}
                           >
                             {s.category === '通知あり' && '!' } {s.title}
