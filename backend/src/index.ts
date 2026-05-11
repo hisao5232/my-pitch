@@ -137,6 +137,43 @@ app.delete('/api/videos/:id', async (c) => {
   return c.json({ success: true });
 });
 
+// --- ごみの日データの保存エンドポイント ---
+app.post('/api/garbage', async (c) => {
+  const { date, type } = await c.req.json<{ date: string; type: string }>();
+
+  if (!date || !type) {
+    return c.json({ error: 'Missing date or type' }, 400);
+  }
+
+  try {
+    // 既存データがあれば更新、なければ挿入 (UPSERT)
+    await c.env.DB.prepare(`
+      INSERT INTO garbage_days (date, type)
+      VALUES (?, ?)
+      ON CONFLICT(date) DO UPDATE SET type = excluded.type
+    `).bind(date, type).run();
+
+    return c.json({ success: true, message: `Mission updated: ${date} -> ${type}` });
+  } catch (e) {
+    console.error(e);
+    return c.json({ error: 'Database update failed' }, 500);
+  }
+});
+
+// --- 初期表示用に全データを取得するエンドポイント (GET) ---
+app.get('/api/garbage', async (c) => {
+  try {
+    const { results } = await c.env.DB.prepare(
+      "SELECT * FROM garbage_days"
+    ).all();
+    
+    // フロントエンドのState形式 Record<string, GarbageType> に変換しやすく返却
+    return c.json(results);
+  } catch (e) {
+    return c.json({ error: 'Failed to fetch data' }, 500);
+  }
+});
+
 // 定期実行（Cron）イベント
 export default {
   fetch: app.fetch, // HonoのAPI処理用
@@ -146,26 +183,44 @@ export default {
 };
 
 async function handleScheduled(env: Bindings) {
-  // 日本時間の「今日」の日付を取得 (JST = UTC+9)
   const now = new Date();
   const jstDate = new Date(now.getTime() + (9 * 60 * 60 * 1000));
   const todayStr = jstDate.toISOString().split('T')[0];
+  const minutes = jstDate.getMinutes();
 
-  // 今日、かつ「通知あり」のスケジュールを検索
-  const { results } = await env.DB.prepare(
-    "SELECT title, description FROM schedules WHERE date = ? AND category = '通知あり'"
-  ).bind(todayStr).all();
+  // --- 05:25 ごみの日通知 ---
+  if (minutes === 25) {
+    const garbageData = await env.DB.prepare(
+      "SELECT type FROM garbage_days WHERE date = ?"
+    ).bind(todayStr).first<{ type: string }>();
 
-  if (results && results.length > 0) {
-    // Discordへ送るメッセージを作成
-    const message = results.map(s => `【${s.title}】\n${s.description || '詳細なし'}`).join('\n\n');
-
-    await fetch(env.DISCORD_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content: `🌅 **おはようございます！本日の予定をお知らせします**\n\n${message}`
-      })
-    });
+    if (garbageData) {
+      const labels: any = { 
+        NON_BURNABLE: '不燃ごみ', BATTERY: '電池', BOTTLE: 'ビン', PAPER: '紙' 
+      };
+      await sendDiscord(env.DISCORD_WEBHOOK_URL, 
+        `🗑️ **【廃棄物処理ミッション】**\n本日は **${labels[garbageData.type]}** の回収日です。出撃準備を！`);
+    }
   }
+
+  // --- 05:30 通常スケジュール通知 ---
+  if (minutes === 30) {
+    const { results } = await env.DB.prepare(
+      "SELECT title FROM schedules WHERE date = ? AND category = '通知あり'"
+    ).bind(todayStr).all();
+
+    if (results && results.length > 0) {
+      const msg = results.map(s => `・${s.title}`).join('\n');
+      await sendDiscord(env.DISCORD_WEBHOOK_URL, 
+        `📅 **【本日の作戦予定】**\n${msg}`);
+    }
+  }
+}
+
+async function sendDiscord(url: string, content: string) {
+  await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content })
+  });
 }

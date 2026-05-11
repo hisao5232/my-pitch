@@ -19,6 +19,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 type Schedule = { id: number; title: string; description: string; date: string; category?: string; };
 type LinkItem = { id: number; title: string; url: string; };
 type VideoItem = { id: number; title: string; url: string; category: string; };
+type GarbageType = 'NON_BURNABLE' | 'BATTERY' | 'BOTTLE' | 'PAPER';
 
 export default function Home() {
   const [schedules, setSchedules] = useState<Schedule[]>([])
@@ -40,6 +41,7 @@ export default function Home() {
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [newCategory, setNewCategory] = useState('通知なし');
   const [holidays, setHolidays] = useState<string[]>([]);
+  const [garbageDays, setGarbageDays] = useState<Record<string, GarbageType>>({});
   // 環境変数の取得
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
 
@@ -127,12 +129,33 @@ const getEmbedUrl = (url: string) => {
     }
   };
 
+  // ごみの日データ取得
+  const fetchGarbageData = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/garbage`);
+      if (!response.ok) throw new Error('Network response was not ok');
+      const data = await response.json();
+      
+      // 配列形式 [{date: '...', type: '...'}, ...] を 
+      // State形式 { '2026-05-12': 'BOTTLE' } に変換
+      const garbageMap = data.reduce((acc: Record<string, GarbageType>, item: any) => {
+        acc[item.date] = item.type;
+        return acc;
+      }, {});
+      
+      setGarbageDays(garbageMap);
+    } catch (err) {
+      console.error("Failed to load garbage missions:", err);
+    }
+  };
+
   // 初回読み込み
   useEffect(() => { 
     fetchSchedules();
     fetchConditions(); 
     fetchLinks();
     fetchVideos();
+    fetchGarbageData();
   }, [])
 
   // --- コンディション登録 ---
@@ -232,6 +255,36 @@ const getEmbedUrl = (url: string) => {
     }
   };
 
+  // ごみの日設定関数
+  const setGarbage = async (dateStr: string, type: GarbageType) => {
+    // 1. まずローカルの表示（State）を更新して即座にUIに反映させる
+    setGarbageDays(prev => ({ ...prev, [dateStr]: type }));
+    
+    try {
+      // 2. バックエンド（Cloudflare Workers）のAPIを叩いてDB(D1)に保存する
+      const response = await fetch(`${API_URL}/api/garbage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: dateStr, type: type }),
+      });
+
+      if (!response.ok) throw new Error('Failed to sync with command center');
+      
+      console.log(`[SYSTEM] Database Updated: ${dateStr} - Target: ${type}`);
+    } catch (error) {
+      console.error('[ERROR] Sync failed:', error);
+      // 失敗した場合はStateを戻すなどの処理（オプション）
+    }
+  };
+
+  // 英語表記の変換マップ
+  const garbageLabels: Record<GarbageType, string> = {
+    NON_BURNABLE: 'NON-BURN',
+    BATTERY: 'BATT',
+    BOTTLE: 'BTLS/CANS',
+    PAPER: 'PAPER/BOX'
+  };
+
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(monthStart)
   const calendarStart = startOfWeek(monthStart, { weekStartsOn: 0 })
@@ -289,12 +342,11 @@ const getEmbedUrl = (url: string) => {
               <div className="grid grid-cols-7 border-t border-slate-800">
                 {calendarDays.map((date, i) => {
                   const dateStr = format(date, 'yyyy-MM-dd')
+                  const garbageType = garbageDays[dateStr];
                   const dateSchedules = schedules.filter(s => s.date === dateStr)
                   const isSelected = isSameDay(date, selectedDay)
                   const isCurrentMonth = isSameMonth(date, monthStart)
                   const isToday = isSameDay(date, new Date())
-  
-                  // 休日の判定
                   const isHoliday = holidays.includes(dateStr)
 
                   return (
@@ -308,10 +360,10 @@ const getEmbedUrl = (url: string) => {
                         ${(i + 1) % 7 === 0 ? 'border-r-0' : ''}
                       `}
                     >
-                      {/* --- 休日ボタン --- */}
+                      {/* --- 右上：休日ボタン --- */}
                       <button
                         onClick={(e) => toggleHoliday(e, dateStr)}
-                        className={`absolute top-1 right-1 w-4 h-4 rounded-full border transition-all flex items-center justify-center
+                        className={`absolute top-1 right-1 w-4 h-4 rounded-full border transition-all flex items-center justify-center z-20
                           ${isHoliday 
                             ? 'bg-red-600 border-red-400 scale-110 shadow-[0_0_8px_rgba(220,38,38,0.6)]' 
                             : 'bg-slate-800 border-slate-700 opacity-0 group-hover:opacity-100 hover:bg-red-900'
@@ -320,6 +372,7 @@ const getEmbedUrl = (url: string) => {
                         <span className="text-[8px] text-white font-black">{isHoliday ? 'OFF' : ''}</span>
                       </button>
 
+                      {/* 日付表示 */}
                       <div className="flex flex-col">
                         <span className={`text-sm font-bold w-fit
                           ${isToday ? 'bg-emerald-500 text-black px-1' : ''}
@@ -327,13 +380,12 @@ const getEmbedUrl = (url: string) => {
                         `}>
                           {format(date, 'd')}
                         </span>
-                        
-                        {/* 休日時のラベル表示（オプション） */}
                         {isHoliday && (
                           <span className="text-[8px] font-black text-red-600 tracking-tighter mt-0.5">OFF_DUTY</span>
                         )}
                       </div>
 
+                      {/* スケジュール表示 */}
                       <div className="mt-2 space-y-1">
                         {dateSchedules.map(s => (
                           <div 
@@ -347,6 +399,30 @@ const getEmbedUrl = (url: string) => {
                             {s.category === '通知あり' && '!' } {s.title}
                           </div>
                         ))}
+                      </div>
+
+                      {/* --- NEW: 左下 ごみの日タグ & プルダウン --- */}
+                      <div className="absolute bottom-1 left-1 flex flex-col gap-1 z-20" onClick={(e) => e.stopPropagation()}>
+                        {/* 表示用タグ（設定されている場合） */}
+                        {garbageType && (
+                          <div className="bg-yellow-500 text-black text-[8px] font-black px-1.5 py-0.5 rounded-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1">
+                            <span className="animate-pulse">⚠️</span> {garbageLabels[garbageType]}
+                          </div>
+                        )}
+
+                        {/* 選択ボタン（ホバー時に表示） */}
+                        <select
+                          onChange={(e) => setGarbage(dateStr, e.target.value as GarbageType)}
+                          value={garbageType || ""}
+                          className="opacity-0 group-hover:opacity-100 bg-slate-900 border border-yellow-600 text-[8px] text-yellow-500 font-bold rounded-none outline-none cursor-pointer p-0.5 transition-opacity"
+                        >
+                          <option value="" disabled>+ WASTE</option>
+                          <option value="NON_BURNABLE">不燃 (NON-BURN)</option>
+                          <option value="BATTERY">電池 (BATT)</option>
+                          <option value="BOTTLE">ビン (BOTTLES)</option>
+                          <option value="PAPER">紙 (PAPER)</option>
+                          <option value="">(CLEAR)</option>
+                        </select>
                       </div>
                     </div>
                   )
