@@ -15,6 +15,7 @@ import SchedulePanel from './components/SchedulePanel'
 import LinkList from './components/LinkList'
 import VideoList from './components/VideoList'
 import EditModal from './components/EditModal'
+import TwitterTimeline from './components/TwitterTimeline'
 
 import { Schedule } from './types'
 
@@ -114,6 +115,8 @@ export default function Home() {
               onAddVideo={addVideo}
               getEmbedUrl={getEmbedUrl}
             />
+
+            <TwitterTimeline />
           </aside>
         </div>
       </div>
