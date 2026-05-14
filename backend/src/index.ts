@@ -12,7 +12,7 @@ app.use('/api/*', cors({
   origin: '*', 
 }))
 
-// --- スケジュール用 ---
+// 1.--- スケジュール用 ---
 app.get('/api/schedules', async (c) => {
   // 全カラム取得するので、フロントエンド側で category を参照可能になります
   const { results } = await c.env.DB.prepare('SELECT * FROM schedules ORDER BY date ASC').all();
@@ -59,6 +59,7 @@ app.delete('/api/schedules/:id', async (c) => {
   return c.json({ success: true });
 });
 
+// 2.コンディションログ用
 // GET コンディションログ取得（直近30日分など）
 app.get('/api/conditions', async (c) => {
   const { results } = await c.env.DB.prepare(
@@ -83,7 +84,29 @@ app.post('/api/conditions', async (c) => {
   }
 });
 
-// --- リンク一覧の取得 ---
+// --- コンディションログの削除 (DELETE) ---
+app.delete('/api/conditions', async (c) => {
+  // クエリパラメータ ?date=2026-05-04 を取得
+  const date = c.req.query('date');
+  
+  if (!date) {
+    return c.json({ success: false, error: 'Date parameter is required' }, 400);
+  }
+
+  try {
+    await c.env.DB.prepare(
+      "DELETE FROM condition_logs WHERE date = ?"
+    )
+    .bind(date)
+    .run();
+    
+    return c.json({ success: true, message: `Record for ${date} deleted.` });
+  } catch (e) {
+    return c.json({ success: false, error: e }, 500);
+  }
+});
+
+// 3．お気に入り --- リンク一覧の取得 ---
 app.get('/api/links', async (c) => {
   const { results } = await c.env.DB.prepare("SELECT * FROM links ORDER BY id DESC").all();
   return c.json(results);
@@ -105,7 +128,7 @@ app.delete('/api/links/:id', async (c) => {
   return c.json({ success: true });
 });
 
-// --- 動画一覧の取得 ---
+// 4.おすすめ動画--- 動画一覧の取得 ---
 app.get('/api/videos', async (c) => {
   const { results } = await c.env.DB.prepare(
     "SELECT * FROM videos ORDER BY created_at DESC"
@@ -137,7 +160,7 @@ app.delete('/api/videos/:id', async (c) => {
   return c.json({ success: true });
 });
 
-// --- ごみの日データの保存エンドポイント ---
+// 5.ゴミの日管理--- ごみの日データの保存エンドポイント ---
 app.post('/api/garbage', async (c) => {
   const { date, type } = await c.req.json<{ date: string; type: string }>();
 

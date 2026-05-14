@@ -36,7 +36,7 @@ export default function Home() {
 
   const { schedules, fetchSchedules, addSchedule, updateSchedule, deleteSchedule } =
     useSchedules(API_URL)
-  const { conditions, fetchConditions, addCondition } = useConditions(API_URL)
+  const { conditions, fetchConditions, addCondition, deleteCondition } = useConditions(API_URL)
   const { links, fetchLinks, addLink, deleteLink } = useLinks(API_URL)
   const { videos, fetchVideos, addVideo, getEmbedUrl } = useVideos(API_URL)
   const { garbageDays, fetchGarbageData, setGarbage } = useGarbage(API_URL)
@@ -92,6 +92,7 @@ export default function Home() {
               conditions={conditions}
               selectedDay={selectedDay}
               onAddCondition={addCondition}
+              onDeleteCondition={deleteCondition}
             />
           </div>
 

@@ -15,11 +15,7 @@ export function useConditions(apiUrl: string) {
     fetch(`${apiUrl}/api/conditions`)
       .then(res => res.json())
       .then((data: ConditionEntry[]) => {
-        const formatted = data.map(item => ({
-          ...item,
-          date: format(new Date(item.date), 'MM/dd'),
-        }));
-        setConditions(formatted);
+        setConditions(data);
       })
       .catch(err => console.error('Fetch conditions error:', err));
   }, [apiUrl]);
@@ -41,5 +37,24 @@ export function useConditions(apiUrl: string) {
     return res.ok;
   };
 
-  return { conditions, fetchConditions, addCondition };
+  // 削除関数
+  const deleteCondition = async (date: string) => {
+    try {
+      const response = await fetch(`${apiUrl}/api/conditions?date=${date}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // 削除成功後、最新のデータを再取得して画面を更新
+        await fetchConditions();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to delete condition:', error);
+      return false;
+    }
+  };
+
+  return { conditions, fetchConditions, addCondition, deleteCondition };
 }
