@@ -12,32 +12,29 @@ app.use('/api/*', cors({
   origin: '*', 
 }))
 
-// 1.--- スケジュール用 ---
+// ==========================================
+// 1. スケジュール用
+// ==========================================
 app.get('/api/schedules', async (c) => {
-  // 全カラム取得するので、フロントエンド側で category を参照可能になります
   const { results } = await c.env.DB.prepare('SELECT * FROM schedules ORDER BY date ASC').all();
   return c.json(results);
 });
 
 app.post('/api/schedules', async (c) => {
-  // category をリクエストボディから取得
   const { title, description, date, category } = await c.req.json();
   
   await c.env.DB.prepare(
-    // INSERT文に category を追加
     'INSERT INTO schedules (title, description, date, category) VALUES (?, ?, ?, ?)'
-  ).bind(title, description, date, category || '通知なし').run(); // undefined対策で初期値を指定
+  ).bind(title, description, date, category || '通知なし').run();
   
   return c.json({ success: true });
 });
 
-// --- スケジュールの更新 (PUT) ---
 app.put('/api/schedules/:id', async (c) => {
   const id = c.req.param('id');
   const { title, description, date, category } = await c.req.json();
   
   await c.env.DB.prepare(
-    // UPDATE文に category を追加
     "UPDATE schedules SET title = ?, description = ?, date = ?, category = ? WHERE id = ?"
   )
   .bind(title, description, date, category, id)
@@ -46,7 +43,6 @@ app.put('/api/schedules/:id', async (c) => {
   return c.json({ success: true });
 });
 
-// --- スケジュールの削除 (DELETE) ---
 app.delete('/api/schedules/:id', async (c) => {
   const id = c.req.param('id');
   
@@ -59,8 +55,43 @@ app.delete('/api/schedules/:id', async (c) => {
   return c.json({ success: true });
 });
 
-// 2.コンディションログ用
-// GET コンディションログ取得（直近30日分など）
+
+// ==========================================
+// ★【新設】 休日管理用
+// ==========================================
+
+// 💡 不足していたデータ取得用 (GET) エンドポイントを追加！
+app.get('/api/holidays', async (c) => {
+  try {
+    const { results } = await c.env.DB.prepare("SELECT date FROM holidays").all();
+    // フロントのstateが string[] 型を期待しているので、日付文字列の配列にして返却
+    const dateArray = results ? results.map(r => r.date) : [];
+    return c.json(dateArray);
+  } catch (e) {
+    return c.json({ error: 'Failed to fetch holidays', details: e }, 500);
+  }
+});
+
+// 休日の切り替え (保存/削除)
+app.post('/api/holidays/toggle', async (c) => {
+  const { date } = await c.req.json();
+  
+  const existing = await c.env.DB.prepare("SELECT date FROM holidays WHERE date = ?")
+    .bind(date).first();
+
+  if (existing) {
+    await c.env.DB.prepare("DELETE FROM holidays WHERE date = ?").bind(date).run();
+    return c.json({ isHoliday: false });
+  } else {
+    await c.env.DB.prepare("INSERT INTO holidays (date) VALUES (?)").bind(date).run();
+    return c.json({ isHoliday: true });
+  }
+});
+
+
+// ==========================================
+// 2. コンディションログ用
+// ==========================================
 app.get('/api/conditions', async (c) => {
   const { results } = await c.env.DB.prepare(
     'SELECT * FROM condition_logs ORDER BY date ASC LIMIT 30'
@@ -68,12 +99,10 @@ app.get('/api/conditions', async (c) => {
   return c.json(results);
 });
 
-// POST コンディションログを追加・更新
 app.post('/api/conditions', async (c) => {
   const { weight, fat, date } = await c.req.json();
   
   try {
-    // 同日のデータがあれば上書き(REPLACE)、なければ挿入
     await c.env.DB.prepare(
       'INSERT OR REPLACE INTO condition_logs (weight, fat, date) VALUES (?, ?, ?)'
     ).bind(weight, fat, date).run();
@@ -84,9 +113,7 @@ app.post('/api/conditions', async (c) => {
   }
 });
 
-// --- コンディションログの削除 (DELETE) ---
 app.delete('/api/conditions', async (c) => {
-  // クエリパラメータ ?date=2026-05-04 を取得
   const date = c.req.query('date');
   
   if (!date) {
@@ -106,13 +133,15 @@ app.delete('/api/conditions', async (c) => {
   }
 });
 
-// 3．お気に入り --- リンク一覧の取得 ---
+
+// ==========================================
+// 3. お気に入りリンク用
+// ==========================================
 app.get('/api/links', async (c) => {
   const { results } = await c.env.DB.prepare("SELECT * FROM links ORDER BY id DESC").all();
   return c.json(results);
 });
 
-// --- リンクの追加 ---
 app.post('/api/links', async (c) => {
   const { title, url } = await c.req.json();
   await c.env.DB.prepare("INSERT INTO links (title, url) VALUES (?, ?)")
@@ -121,14 +150,16 @@ app.post('/api/links', async (c) => {
   return c.json({ success: true });
 });
 
-// --- リンクの削除 ---
 app.delete('/api/links/:id', async (c) => {
   const id = c.req.param('id');
   await c.env.DB.prepare("DELETE FROM links WHERE id = ?").bind(id).run();
   return c.json({ success: true });
 });
 
-// 4.おすすめ動画--- 動画一覧の取得 ---
+
+// ==========================================
+// 4. おすすめ動画用
+// ==========================================
 app.get('/api/videos', async (c) => {
   const { results } = await c.env.DB.prepare(
     "SELECT * FROM videos ORDER BY created_at DESC"
@@ -136,7 +167,6 @@ app.get('/api/videos', async (c) => {
   return c.json(results);
 });
 
-// --- 動画の追加 ---
 app.post('/api/videos', async (c) => {
   const { title, url, category } = await c.req.json();
   
@@ -153,14 +183,16 @@ app.post('/api/videos', async (c) => {
   }
 });
 
-// --- 動画の削除 ---
 app.delete('/api/videos/:id', async (c) => {
   const id = c.req.param('id');
   await c.env.DB.prepare("DELETE FROM videos WHERE id = ?").bind(id).run();
   return c.json({ success: true });
 });
 
-// 5.ゴミの日管理--- ごみの日データの保存エンドポイント ---
+
+// ==========================================
+// 5. ゴミの日管理用
+// ==========================================
 app.post('/api/garbage', async (c) => {
   const { date, type } = await c.req.json<{ date: string; type: string }>();
 
@@ -169,7 +201,6 @@ app.post('/api/garbage', async (c) => {
   }
 
   try {
-    // 既存データがあれば更新、なければ挿入 (UPSERT)
     await c.env.DB.prepare(`
       INSERT INTO garbage_days (date, type)
       VALUES (?, ?)
@@ -183,25 +214,25 @@ app.post('/api/garbage', async (c) => {
   }
 });
 
-// --- 初期表示用に全データを取得するエンドポイント (GET) ---
 app.get('/api/garbage', async (c) => {
   try {
     const { results } = await c.env.DB.prepare(
       "SELECT * FROM garbage_days"
     ).all();
-    
-    // フロントエンドのState形式 Record<string, GarbageType> に変換しやすく返却
     return c.json(results);
   } catch (e) {
     return c.json({ error: 'Failed to fetch data' }, 500);
   }
 });
 
-// 定期実行（Cron）イベント
+
+// ==========================================
+// 定期実行（Cron）システム
+// ==========================================
 export default {
-  fetch: app.fetch, // HonoのAPI処理用
+  fetch: app.fetch,
   async scheduled(event: any, env: Bindings, ctx: ExecutionContext) {
-    ctx.waitUntil(handleScheduled(env)); // 定期実行の処理を非同期で実行
+    ctx.waitUntil(handleScheduled(env));
   },
 };
 
@@ -211,7 +242,6 @@ async function handleScheduled(env: Bindings) {
   const todayStr = jstDate.toISOString().split('T')[0];
   const minutes = jstDate.getMinutes();
 
-  // --- 05:25 ごみの日通知 ---
   if (minutes === 25) {
     const garbageData = await env.DB.prepare(
       "SELECT type FROM garbage_days WHERE date = ?"
@@ -226,7 +256,6 @@ async function handleScheduled(env: Bindings) {
     }
   }
 
-  // --- 05:30 通常スケジュール通知 ---
   if (minutes === 30) {
     const { results } = await env.DB.prepare(
       "SELECT title FROM schedules WHERE date = ? AND category = '通知あり'"

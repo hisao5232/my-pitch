@@ -32,7 +32,7 @@ export default function Home() {
     goToPrevMonth,
     goToNextMonth,
     toggleHoliday,
-  } = useCalendar()
+  } = useCalendar(API_URL)
 
   const { schedules, fetchSchedules, addSchedule, updateSchedule, deleteSchedule } =
     useSchedules(API_URL)
