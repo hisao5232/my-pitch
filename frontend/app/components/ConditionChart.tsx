@@ -124,7 +124,7 @@ export default function ConditionChart({ conditions, selectedDay, onAddCondition
           <h3 className="text-[10px] font-bold text-slate-500 mb-6 uppercase tracking-widest border-b border-dashed border-slate-700 pb-2">
             Growth Chart / Click dot to delete
           </h3>
-          <div className="w-full h-64">
+          <div className="w-full h-75 min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={conditions} margin={{ left: -20, right: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
